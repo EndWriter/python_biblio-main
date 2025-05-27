@@ -1,0 +1,111 @@
+1. Repository des livres (books.py)
+
+Ce fichier gère les données des livres.
+Il contient des méthodes pour :
+
+get_by_isbn :
+Cherche un livre avec l’ISBN exact. Retourne le premier trouvé ou None.
+
+get_by_title :
+Cherche tous les livres dont le titre contient le mot donné (recherche insensible à la casse).
+
+get_by_author :
+Même chose, mais pour le nom de l’auteur.
+
+
+////////////////////////////////////
+
+
+2. Repository des utilisateurs (users.py)
+
+--- Importations :
+
+Session : gère la connexion à la base de données
+
+BaseRepository : fournit les méthodes de base
+
+User : modèle utilisateur
+
+--- Fonctionnement :
+
+get_by_email :
+Cherche un utilisateur via son email
+→ Utilise self.db pour interroger la table User
+→ Retourne le premier trouvé ou None s’il n’y en a pas
+
+Ce fichier permet d’accéder aux données des utilisateurs.
+Méthode principale :
+
+
+///////////////////////////////////
+
+
+3. Repository des emprunts (loans.py)
+
+----  Importe :
+
+Session : gère la base de données
+
+List : indique que certaines méthodes renvoient des listes
+
+datetime : pour gérer les dates
+
+
+----   Fonctionnement :
+
+Cette classe interroge la base sur les emprunts de livres.
+
+
+get_active_loans
+- Emprunts encore en cours (return_date == None)
+
+get_overdue_loans
+- Emprunts en retard (la date limite est dépassée)
+
+get_loans_by_user
+- Emprunts faits par un utilisateur donné
+
+get_loans_by_book
+- Emprunts liés à un livre spécifique
+
+
+
+
+////////////////////////////////////
+
+
+
+4. Migration initiale
+
+alembic revision --autogenerate -m "Initial migration"
+
+--- Crée un fichier de migration
+
+'''--autogenerate ''': détecte les modèles et génère le code pour créer les tables manquantes
+
+''' -m "Initial migration" ''': ajoute un message pour identifier la migration
+
+alembic upgrade head
+
+--- Applique la migration
+
+Crée les tables dans la base selon les modèles SQLAlchemy
+
+////////////////////////////////////
+
+5. Test de l’API
+
+Lance l’appli avec :
+
+python run.py
+Puis va sur http://localhost:8000/docs pour :
+
+- Créer un utilisateur
+
+- Se connecter et obtenir un token
+
+- Ajouter un livre ou un emprunt
+
+- Voir les listes de livres, utilisateurs, emprunts
+
+Obj : vérifier que tout fonctionne.
