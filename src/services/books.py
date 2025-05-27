@@ -1,54 +1,59 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Any, Dict, Union
+from sqlalchemy.orm import Session
 
-class Book:
-    def __init__(self, id: int, title: str, author: str, year: int, genre: str):
-        self.id = id
-        self.title = title
-        self.author = author
-        self.year = year
-        self.genre = genre
+from ..repositories.books import BookRepository
+from ..models.books import Book
+from ..api.schemas.books import BookCreate, BookUpdate
+from .base import BaseService
 
-class BookService:
-    def __init__(self):
-        self.books: List[Book] = []
-        self.next_id = 1
 
-    def add_book(self, title: str, author: str, year: int, genre: str) -> Book:
-        book = Book(self.next_id, title, author, year, genre)
-        self.books.append(book)
-        self.next_id += 1
-        return book
+class BookService(BaseService[Book, BookCreate, BookUpdate]):
+    """
+    Service pour la gestion des livres.
+    """
+    def __init__(self, repository: BookRepository):
+        super().__init__(repository)
+        self.repository = repository
 
-    def get_book(self, book_id: int) -> Optional[Book]:
-        for book in self.books:
-            if book.id == book_id:
-                return book
-        return None
+    def get_by_isbn(self, *, isbn: str) -> Optional[Book]:
+        """
+        Récupère un livre par son ISBN.
+        """
+        return self.repository.get_by_isbn(isbn=isbn)
 
-    def remove_book(self, book_id: int) -> bool:
-        for i, book in enumerate(self.books):
-            if book.id == book_id:
-                del self.books[i]
-                return True
-        return False
+    def get_by_title(self, *, title: str) -> List[Book]:
+        """
+        Récupère des livres par leur titre (recherche partielle).
+        """
+        return self.repository.get_by_title(title=title)
 
-    def search_books(self, title: Optional[str] = None, author: Optional[str] = None,
-                     year: Optional[int] = None, genre: Optional[str] = None) -> List[Book]:
-        results = self.books
-        if title:
-            results = [book for book in results if title.lower() in book.title.lower()]
-        if author:
-            results = [book for book in results if author.lower() in book.author.lower()]
-        if year:
-            results = [book for book in results if book.year == year]
-        if genre:
-            results = [book for book in results if genre.lower() in book.genre.lower()]
-        return results
+    def get_by_author(self, *, author: str) -> List[Book]:
+        """
+        Récupère des livres par leur auteur (recherche partielle).
+        """
+        return self.repository.get_by_author(author=author)
 
-    def list_books(self) -> List[Book]:
-        return self.books
+    def create(self, *, obj_in: BookCreate) -> Book:
+        """
+        Crée un nouveau livre, en vérifiant que l'ISBN n'est pas déjà utilisé.
+        """
+        # Vérifier si l'ISBN est déjà utilisé
+        existing_book = self.get_by_isbn(isbn=obj_in.isbn)
+        if existing_book:
+            raise ValueError("L'ISBN est déjà utilisé")
 
-# Exemple d'utilisation :
-# service = BookService()
-# service.add_book("Le Petit Prince", "Antoine de Saint-Exupéry", 1943, "Fiction")
-# books = service.search_books(author="Saint-Exupéry")
+        return self.repository.create(obj_in=obj_in)
+
+    def update_quantity(self, *, book_id: int, quantity_change: int) -> Book:
+        """
+        Met à jour la quantité d'un livre.
+        """
+        book = self.get(id=book_id)
+        if not book:
+            raise ValueError(f"Livre avec l'ID {book_id} non trouvé")
+
+        new_quantity = book.quantity + quantity_change
+        if new_quantity < 0:
+            raise ValueError("La quantité ne peut pas être négative")
+
+        return self.repository.update(db_obj=book, obj_in={"quantity": new_quantity})
